@@ -151,18 +151,21 @@ install {
     def jarApiForgeName = String.format("%s-api-forge-%s", rootProject.name, version.toString())
     def jarSAName = String.format("%s-standalone-%s", rootProject.name, version.toString())
     def jarSAForgeName = String.format("%s-standalone-forge-%s", rootProject.name, version.toString())
+    def jarUnoptimizedName = String.format("%s-unoptimized-%s", rootProject.name, version.toString())
 
     artifacts {
         archives file("$buildDir/libs/"+jarApiName+".jar")
         archives file("$buildDir/libs/"+jarApiForgeName+".jar")
         archives file("$buildDir/libs/"+jarSAName+".jar")
         archives file("$buildDir/libs/"+jarSAForgeName+".jar")
+        archives file("$buildDir/libs/"+jarUnoptimizedName+".jar")
     }
     repositories.mavenInstaller {
 		addFilter('api') { artifact, file -> artifact.name == "baritone-api" }
 		addFilter('api-forge') { artifact, file -> artifact.name == "baritone-api-forge" }
 		addFilter('standalone') { artifact, file -> artifact.name == "baritone-standalone" }
 		addFilter('standalone-forge') { artifact, file -> artifact.name == "baritone-standalone-forge" }
+        addFilter('unoptimized') { artifact, file -> artifact.name == "baritone-unoptimized" }
     }
 }
 
