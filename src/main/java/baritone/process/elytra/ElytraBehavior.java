@@ -427,9 +427,7 @@ public final class ElytraBehavior implements Helper {
     }
 
     public void pathTo() {
-        if (!Baritone.settings().elytraAutoJump.value || ctx.player().isElytraFlying()) {
-            this.pathManager.pathToDestination();
-        }
+        this.pathManager.pathToDestination();
     }
 
     public void destroy() {

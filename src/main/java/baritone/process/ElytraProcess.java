@@ -43,16 +43,24 @@ import baritone.process.elytra.NetherPathfinderContext;
 import baritone.process.elytra.NullElytraProcess;
 import baritone.utils.BaritoneProcessHelper;
 import baritone.utils.PathingCommandContext;
+import baritone.utils.accessor.IMinecraft;
+import baritone.utils.accessor.ITimer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.network.play.client.CPacketEntityAction;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
 
 import java.util.*;
 
 import static baritone.api.pathing.movement.ActionCosts.COST_INF;
+import static com.google.common.primitives.Doubles.asList;
 
 public class ElytraProcess extends BaritoneProcessHelper implements IBaritoneProcess, IElytraProcess, AbstractGameEventListener {
     public State state;
@@ -140,6 +148,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 return new PathingCommand(null, PathingCommandType.REQUEST_PAUSE);
             }
         } else if (ctx.player().isElytraFlying()) {
+            ((ITimer) ((IMinecraft) ctx.minecraft()).getTimer()).setTickLength(50.0f);
             this.state = State.FLYING;
             this.goal = null;
             baritone.getInputOverrideHandler().clearAllKeys();
@@ -149,7 +158,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
 
         if (this.state == State.FLYING || this.state == State.START_FLYING) {
             this.state = ctx.player().onGround && Baritone.settings().elytraAutoJump.value
-                    ? State.LOCATE_JUMP
+                    ? State.TAKEOFF
                     : State.START_FLYING;
         }
 
@@ -211,6 +220,26 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             }
         }
 
+        if (this.state == State.TAKEOFF) {
+            // todo: check if we have enough vertical space to jump and path elsewhere if not
+            if (ctx.player().onGround) {
+                ctx.player().jump();
+                return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
+            }
+            boolean closeToGround = ctx.player().posY <= getGroundPos(ctx.world(), ctx.player()).y + 0.1;
+
+            if (ctx.player().motionY < -0.02) {
+                if (closeToGround) {
+                    ((ITimer) ((IMinecraft) ctx.minecraft()).getTimer()).setTickLength(50.0f);
+                    return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
+                }
+
+                ctx.player().setVelocity(0.0, -0.02, 0.0);
+                ((ITimer) ((IMinecraft) ctx.minecraft()).getTimer()).setTickLength(400.0f);
+                ctx.minecraft().getConnection().sendPacket(new CPacketEntityAction(ctx.player(), CPacketEntityAction.Action.START_FALL_FLYING));
+            }
+        }
+
         if (this.state == State.START_FLYING) {
             if (!isSafeToCancel) {
                 // owned
@@ -222,6 +251,35 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             }
         }
         return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
+    }
+
+    private Vec3d getGroundPos(final World world, final Entity entity) {
+        AxisAlignedBB entityBoundingBox = entity.getEntityBoundingBox();
+        final List<Double> xList = asList(Math.floor(entityBoundingBox.minX), Math.floor(entityBoundingBox.maxX));
+        final List<Double> zList = asList(Math.floor(entityBoundingBox.minZ), Math.floor(entityBoundingBox.maxZ));
+        final List<RayTraceResult> rayTraceResults = new ArrayList<>();
+        for (Double x : xList) {
+            for (Double z : zList) {
+                RayTraceResult rayTraceResult = world.rayTraceBlocks(new Vec3d(x, entityBoundingBox.minY, z),
+                                                                     new Vec3d(x, entityBoundingBox.minY - 1, z),
+                                                                     true,
+                                                                     true,
+                                                                     false);
+                if (rayTraceResult != null) {
+                    rayTraceResults.add(rayTraceResult);
+                }
+            }
+        }
+        if (rayTraceResults.stream().allMatch(res -> res.typeOfHit == RayTraceResult.Type.MISS || (res.hitVec != null && res.hitVec.y < 0))) {
+            return new Vec3d(0.0, -999.0, 0.0);
+        }
+        Optional<RayTraceResult> max = rayTraceResults.stream()
+                .max(Comparator.comparingDouble(res -> res.hitVec == null ? -69420.0 : res.hitVec.y));
+        if (max.isPresent()) {
+            return max.get().hitVec;
+        } else {
+            return new Vec3d(0.0, -69420.0, 0.0);
+        }
     }
 
     @Override
@@ -308,6 +366,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         LOCATE_JUMP("Finding spot to jump off"),
         PAUSE("Waiting for elytra path"),
         GET_TO_JUMP("Walking to takeoff"),
+        TAKEOFF("Do a jump takeoff"),
         START_FLYING("Begin flying"),
         FLYING("Flying"),
         LANDING("Landing");

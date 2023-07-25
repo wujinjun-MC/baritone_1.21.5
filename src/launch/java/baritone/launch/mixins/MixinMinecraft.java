@@ -24,6 +24,7 @@ import baritone.api.event.events.PlayerUpdateEvent;
 import baritone.api.event.events.TickEvent;
 import baritone.api.event.events.WorldEvent;
 import baritone.api.event.events.type.EventState;
+import baritone.utils.accessor.IMinecraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -31,11 +32,13 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.Timer;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -50,7 +53,7 @@ import java.util.function.BiFunction;
  * @since 7/31/2018
  */
 @Mixin(Minecraft.class)
-public class MixinMinecraft {
+public abstract class MixinMinecraft implements IMinecraft {
 
     @Shadow
     public EntityPlayerSP player;
@@ -60,6 +63,9 @@ public class MixinMinecraft {
 
     @Unique
     private BiFunction<EventState, TickEvent.Type, TickEvent> tickProvider;
+
+    @Accessor
+    public abstract Timer getTimer();
 
     @Inject(
             method = "init",
