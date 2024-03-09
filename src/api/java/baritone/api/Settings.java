@@ -1428,7 +1428,7 @@ public final class Settings {
     /**
      * Automatically path to and jump off of ledges to initiate elytra flight when grounded.
      */
-    public final Setting<Boolean> elytraAutoJump = new Setting<>(false);
+    public final Setting<Boolean> elytraAutoJump = new Setting<>(true);
 
     /**
      * The seed used to generate chunks for long distance elytra path-finding in the nether.
