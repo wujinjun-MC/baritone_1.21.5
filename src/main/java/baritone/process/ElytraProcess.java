@@ -55,9 +55,9 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
     private boolean goingToLandingSpot;
     private BetterBlockPos landingSpot;
     private boolean reachedGoal; // this basically just prevents potential notification spam
-    private Goal goal;
     private ElytraBehavior behavior;
     private boolean predictingTerrain;
+    private long startedJumpStateTime = 0L;
 
     @Override
     public void onLostControl() {
@@ -65,7 +65,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         this.goingToLandingSpot = false;
         this.landingSpot = null;
         this.reachedGoal = false;
-        this.goal = null;
+        startedJumpStateTime = 0L;
         destroyBehaviorAsync();
     }
 
@@ -174,7 +174,6 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
 
         if (ctx.player().isFallFlying()) {
             behavior.landingMode = this.state == State.LANDING;
-            this.goal = null;
             baritone.getInputOverrideHandler().clearAllKeys();
             behavior.tick();
             return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
@@ -197,6 +196,9 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
         }
 
         if (this.state == State.JUMP) {
+            if (startedJumpStateTime == 0L) {
+                startedJumpStateTime = System.currentTimeMillis();
+            }
             if (shouldLandForSafety()) {
                 logDirect("Not taking off, because elytra durability or fireworks are so low that I would immediately emergency land anyway.");
                 onLostControl();
@@ -212,7 +214,26 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
             if (canStartFlying) {
                 this.state = State.START_FLYING;
             } else {
-                // todo: after x ticks we should path elsewhere and try again to prevent getting stuck by block on top of us or something
+                // todo: not sure if this is the best way to handle this. maybe just let the player decide when/where to walk to
+                if (System.currentTimeMillis() - startedJumpStateTime > 1000) {
+                    logDirect("Unable to perform autoJump takeoff, pathing forward");
+                    final GoalXZ goal = GoalXZ.fromDirection(
+                        ctx.playerFeetAsVec(),
+                        ctx.player().getYHeadRot(),
+                        5
+                    );
+                    final BetterBlockPos forwardBlockPos = new BetterBlockPos(goal.getX(), ctx.player().position().y(), goal.getZ());
+                    behavior.pathManager.pathToDestination(forwardBlockPos).whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            startedJumpStateTime = 0L;
+                            this.state = State.JUMP;
+                            return;
+                        }
+                        onLostControl();
+                    });
+                    this.state = State.PAUSE;
+                    return new PathingCommand(goal, PathingCommandType.SET_GOAL_AND_PAUSE);
+                }
                 return new PathingCommand(null, PathingCommandType.SET_GOAL_AND_PATH);
             }
         }
