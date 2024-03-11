@@ -206,7 +206,7 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 ctx.player().jumpFromGround();
                 return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
             }
-            final boolean canStartFlying = ctx.player().getDeltaMovement().y < 0;
+            final boolean canStartFlying = ctx.player().fallDistance > 0.2f;
 
             if (canStartFlying) {
                 this.state = State.START_FLYING;
@@ -227,10 +227,8 @@ public class ElytraProcess extends BaritoneProcessHelper implements IBaritonePro
                 baritone.getPathingBehavior().secretInternalSegmentCancel();
             }
             baritone.getInputOverrideHandler().clearAllKeys();
-            if (ctx.player().getDeltaMovement().y < 0) {
+            if (ctx.player().fallDistance > 0.2f) {
                 baritone.getInputOverrideHandler().setInputForceState(Input.JUMP, true);
-            } else {
-                this.state = State.JUMP; // ???
             }
         }
         return new PathingCommand(null, PathingCommandType.CANCEL_AND_SET_GOAL);
