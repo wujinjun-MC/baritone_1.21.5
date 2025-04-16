@@ -43,7 +43,7 @@ If another one of your Forge mods has a Baritone integration, you want `baritone
 ## Command Line
 On Mac OSX and Linux, use `./gradlew` instead of `gradlew`.
 
-If you have errors with a package missing please make sure you have setup your environment, and are using Oracle JDK 8 for 1.12.2-1.16.5, JDK 16+ for 1.17.1, and JDK 17+ for 1.18.1.
+If you have errors with a package missing please make sure you have setup your environment, and are using Oracle JDK 8 for 1.12.2-1.16.5, JDK 16 for 1.17.1, JDK 17 for 1.18.1-1.20.4, and JDK 21 for 1.20.5+
 
 To check which java you are using do 
 `java -version` in a command prompt or terminal.
