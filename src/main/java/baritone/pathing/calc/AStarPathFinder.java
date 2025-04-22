@@ -122,8 +122,10 @@ public final class AStarPathFinder extends AbstractNodeCostSearch {
                     throw new IllegalStateException(moves + " calculated implausible cost " + actionCost);
                 }
                 if (actionCost <= 0) {
-                    actionCost = -actionCost;
-                    // throw new IllegalStateException(moves + " calculated implausible cost " + actionCost);
+                    // actionCost = -actionCost;
+                    throw new IllegalStateException(String.format(
+                             "%s from %s %s %s calculated implausible cost %s",
+                             moves, currentNode.x, currentNode.y, currentNode.z, actionCost));
                 }
                 if (actionCost >= ActionCosts.COST_INF) {
                     continue;
