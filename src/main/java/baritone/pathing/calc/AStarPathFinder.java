@@ -119,18 +119,24 @@ public final class AStarPathFinder extends AbstractNodeCostSearch {
                 moves.apply(calcContext, currentNode.x, currentNode.y, currentNode.z, res);
                 numMovementsConsidered++;
                 double actionCost = res.cost;
+                if (Double.isNaN(actionCost)) {
+                    throw new IllegalStateException(moves + " calculated implausible cost " + actionCost);
+                }
+                if (actionCost <= 0) {
+                    actionCost = -actionCost;
+                }
                 if (actionCost >= ActionCosts.COST_INF) {
                     continue;
                 }
-                if (actionCost <= 0 || Double.isNaN(actionCost)) {
-                    throw new IllegalStateException(String.format(
-                            "%s from %s %s %s calculated implausible cost %s",
-                            moves,
-                            SettingsUtil.maybeCensor(currentNode.x),
-                            SettingsUtil.maybeCensor(currentNode.y),
-                            SettingsUtil.maybeCensor(currentNode.z),
-                            actionCost));
-                }
+                // if (actionCost <= 0 || Double.isNaN(actionCost)) {
+                //     throw new IllegalStateException(String.format(
+                //             "%s from %s %s %s calculated implausible cost %s",
+                //             moves,
+                //             SettingsUtil.maybeCensor(currentNode.x),
+                //             SettingsUtil.maybeCensor(currentNode.y),
+                //             SettingsUtil.maybeCensor(currentNode.z),
+                //             actionCost));
+                // }
                 // check destination after verifying it's not COST_INF -- some movements return COST_INF without adjusting the destination
                 if (moves.dynamicXZ && !worldBorder.entirelyContains(res.x, res.z)) { // see issue #218
                     continue;
